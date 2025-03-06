@@ -11,6 +11,7 @@ const { definePartsStyle, defineMultiStyleConfig } = createMultiStyleConfigHelpe
 
 export const PrimaryColor = "#05668D";
 export const PrimaryColor40 = "#05668D40";
+export const PrimaryFont = "Arial";
 
 export const ActiveControlColor = "#22C0D2";
 

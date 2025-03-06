@@ -45,7 +45,7 @@ export function ResultPaging() {
                 <ResultsNavigation
                     result={page}
                     of={pageCount}
-                    label_result="result"
+                    label_result="Page"
                     label_of="of"
                     stepBack={stepBack}
                     stepFoward={stepForward}

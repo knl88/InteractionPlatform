@@ -1,5 +1,5 @@
-import { Box, Button, Container, Flex, Spacer } from "@open-pioneer/chakra-integration";
-import { useEffect, useRef, useState } from "react";
+import { Box, Button, Container, Flex, Skeleton, Spacer, Stack, Text } from "@open-pioneer/chakra-integration";
+import { useEffect, useState } from "react";
 import { createSearchParams, useNavigate, useSearchParams } from "react-router-dom";
 
 import { FilterIcon } from "../../components/Icons";
@@ -9,19 +9,33 @@ import { Chips } from "./Chips/Chips";
 import { MobileFilterMenu } from "./Facets/MobileFilterMenu/MobileFilterMenu";
 import { SpatialCoverageFacet } from "./Facets/SpatialCoverageFacet/SpatialCoverageFacet";
 import { DataProviderFacet } from "./Facets/DataProviderFacet/DataProviderFacet";
-import { ResultCountSelector } from "./ResultCountSelector/ResultCountSelector";
 import { ResultPaging } from "./ResultPaging/ResultPaging";
 import { SearchResult } from "./SearchResult/SearchResult";
 import { UrlSearchParameterType, UrlSearchParams, useSearchState } from "./SearchState";
+import { RelatedTerms } from "./Facets/RelatedTerms/RelatedTerms";
 import { DownloadOptionFacet } from "./Facets/DownloadOptionFacet/DownloadOptionFacet";
-//import { SortedBySelector } from "./SortedBySelector/SortedBySelector";
+import { PrimaryFont } from "../../Theme";
 
 export function SearchView() {
     const searchState = useSearchState();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const [searchTimeout, setSearchTimeout] = useState(false);
+
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    useEffect(() => searchState.search(), [searchParams]);
+    useEffect(() =>  {
+        searchState.search();
+    }, [searchParams]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (!searchState.isLoaded) {
+                setSearchTimeout(true);
+            }
+        }, 45000);
+
+        return () => clearTimeout(timer);
+    }, [searchState.isLoaded]);
 
     useEffect(() => {
         const params: UrlSearchParams = {};
@@ -51,7 +65,7 @@ export function SearchView() {
         }
 
         if (searchState.downloadOption) {
-            params[UrlSearchParameterType.DownloadOption] = searchState.downloadOption;
+            params[UrlSearchParameterType.DownloadOption] = `${searchState.downloadOption}`;
         }
 
         navigate({
@@ -62,16 +76,13 @@ export function SearchView() {
     }, [
         searchState.searchTerm,
         searchState.spatialFilter,
-        searchState.pageSize,
-        searchState.pageStart,
         searchState.sorting,
-        searchState.selectedDataProvider,
+        searchState.selectedDataProviderTmp,
         searchState.downloadOption
     ]);
 
     const [openMenu, setOpenMenu] = useState(false);
 
-    const menu = useRef(null);
     return (
         <Box className="search-view">
             <Box position="relative">
@@ -88,22 +99,44 @@ export function SearchView() {
                 </Container>
             </Box>
 
-            <Box height={{ base: "50px", custombreak: "80px" }}></Box>
+            <Box height={{ base: "100px", custombreak: "60px" }}></Box>
 
             <Container maxW={{ base: "100%", custombreak: "80%" }}>
                 <Flex gap="5vw">
                     {searchState.isLoaded ? (
-                        <Box flex="1 1 100%" overflow="hidden">
+                        <Box flex="1 1 100%" >
+                            {/* Desktop view */}
+                            <Box className="relatedTermsBox">
+                                {searchState.searchTerm != "" ? <RelatedTerms /> : null}
+                            </Box>
                             <Flex flexDirection={{ base: "column", custombreak: "row" }}>
-                                <Box className="results-count">
-                                    {searchState.selectedDataProvider.length > 0 &&
-                                    !searchState.searchResults?.count
-                                        ? "0"
-                                        : searchState.searchResults?.count}{" "}
-                                    {searchState.searchResults?.count ||
-                                    searchState.selectedDataProvider.length > 0
-                                        ? "Results for your search"
-                                        : "Select a data provider on the right"}
+                                <Box 
+                                    className="results-count" 
+                                    style={{ fontFamily: PrimaryFont, color: "red" }}
+                                >
+                                    {(() => {
+                                        const { selectedDataProvider, searchResults, searchTerm } = searchState;
+                                        const hasProvider = selectedDataProvider.length > 0;
+                                        const hasSearchTerm = searchTerm.trim() !== "";
+                                        const resultsCount = searchResults?.count;
+
+                                        if (hasProvider && !resultsCount && hasSearchTerm) {
+                                            return <span style={{ color: "black" }}>0 Results for your search</span>;
+                                        }
+                                        if (resultsCount) {
+                                            return <span style={{ color: "black" }}>{resultsCount} Results for your search</span>;
+                                        }
+                                        if (!hasProvider && !hasSearchTerm) {
+                                            return "Select a data provider on the right, type in a search term & press \"search\"";
+                                        }
+                                        if (!hasProvider && hasSearchTerm) {
+                                            return "Select a data provider on the right and press \"search\"";
+                                        }
+                                        if (hasProvider && !hasSearchTerm) {
+                                            return "Type in a search term and press \"search\"";
+                                        }
+                                        return null;
+                                    })()}
                                 </Box>
                                 <Box hideFrom="custombreak" padding="20px 0px">
                                     <ResultPaging />
@@ -130,62 +163,70 @@ export function SearchView() {
                                     </Box>
                                 </Flex>
                             </Flex>
-                            <Box hideBelow="custombreak" padding={{ base: "40px 0px" }}>
+                            <Box pt={2}>
+                                For performance reasons, the number of search results is limited to a maximum of 100 prioritized hits.
+                            </Box>
+                            <Box hideBelow="custombreak" padding={{ base: "20px 0px" }}>
                                 <Chips />
                             </Box>
                             <Box>
-                                {searchState.searchResults?.results.map((e) => {
-                                    return (
-                                        <Box key={e.id}>
-                                            <Box className="seperator"></Box>
-                                            <Box padding={{ base: "40px 0px" }}>
-                                                <SearchResult item={e} />
+                                {searchState.searchResults?.results
+                                    .slice(
+                                        searchState.pageStart * searchState.pageSize,
+                                        (searchState.pageStart + 1) * searchState.pageSize
+                                    )
+                                    .map((e) => {
+                                        return (
+                                            <Box key={e.id}>
+                                                <Box className="seperator"></Box>
+                                                <Box padding={{ base: "25px 0px" }}>
+                                                    <SearchResult item={e} />
+                                                </Box>
                                             </Box>
-                                        </Box>
-                                    );
-                                })}
+                                        );
+                                    })}
                             </Box>
                             <Box className="seperator" />
                             <Box hideFrom="custombreak" padding="40px 0px">
                                 <ResultPaging />
                             </Box>
                         </Box>
+                    ) : searchTimeout ? (
+                        <Box flex="1 1 100%" overflow="hidden" pt={{ base: "7%", custombreak: "0%" }}>
+                            <Text fontSize="lg" fontWeight="bold" color="red">
+                                Search is taking longer than expected. Please refresh page (press F5).
+                            </Text>
+                        </Box>
                     ) : (
-                        <Box
-                            flex="1 1 100%"
-                            overflow="hidden"
-                            paddingTop={{ base: "7%", custombreak: "0%" }}
-                        >
-                            Loading...
+                        <Box flex="1 1 100%" overflow="hidden" pt={{ base: "7%", custombreak: "0%" }}>
+                            Your request is currently being processed and may take a few seconds. 
+                            For performance reasons, the number of search results is limited to a maximum of 100 prioritized hits. 
+                            Hence, there might be more search results than shown.
+
+                            <Stack pt={3} spacing={5}>
+                                {Array(14).fill(null).map((_, index) => (
+                                    <Skeleton key={index} height="50px" />
+                                ))}
+                            </Stack>
                         </Box>
                     )}
-
-                    <Flex flex="0 0 30%" hideBelow="custombreak" flexDirection="column">
-                        <Box>
-                            <ResultPaging />
-                        </Box>
-                        <Box padding={"32px 0px"}>
-                            <DataProviderFacet />
-                        </Box>
-                        {/*<Box>
-                            <DownloadOptionFacet />
-                        </Box>*/}
-                        {/*<Box padding={"64px 0px 32px"} ref={menu}>
-                            <ResourceTypeFacet></ResourceTypeFacet>
-                        </Box>
-                        <Box padding={"32px 0px"}>
-                            <SubjectFacet></SubjectFacet>
-                        </Box>*/}
-                        <Box padding={"32px 0px"}>
+                    <Flex 
+                        flex="0 0 35%" 
+                        hideBelow="custombreak" 
+                        flexDirection="column" 
+                        gap={7} 
+                        position="sticky" 
+                        top="150px" 
+                        zIndex="1"
+                    >
+                        <ResultPaging />
+                        <DataProviderFacet />
+                        <DownloadOptionFacet />
+                        <Box marginBottom={"50px"} position="sticky" top="150px" zIndex="1">
                             <SpatialCoverageFacet mapId="spatial-filter-map" />
                         </Box>
-                        {/*<Box padding={"32px 0px"}>
-                            <TemporalCoverageFacet />
-                    </Box>*/}
                         <Spacer />
-                        <Box>
-                            <ResultPaging />
-                        </Box>
+                        <ResultPaging />
                     </Flex>
                 </Flex>
                 <MobileFilterMenu

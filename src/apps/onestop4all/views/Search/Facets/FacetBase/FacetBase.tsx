@@ -11,7 +11,7 @@ import { CSSProperties, PropsWithChildren } from "react";
 import { DropdownArrowIcon } from "../../../../components/Icons";
 
 export interface FacetBaseProps {
-    title: string;
+    title: string | React.ReactNode;
     expanded?: boolean;
 }
 
@@ -22,8 +22,8 @@ export function FacetBase(props: PropsWithChildren<FacetBaseProps>) {
         paddingInline: 0,
         flex: 1,
         textAlign: "left",
-        fontFamily: "Open Sans",
-        fontSize: "12px",
+        fontFamily: "Arial",
+        fontSize: "14px",
         fontWeight: 700,
         letterSpacing: "0.6px",
         textTransform: "uppercase",
@@ -63,7 +63,6 @@ export function FacetBase(props: PropsWithChildren<FacetBaseProps>) {
                         </AccordionButton>
                         <AccordionPanel padding="0">
                             <Box padding="8px 0">{children}</Box>
-                            <Box className="seperator"></Box>
                         </AccordionPanel>
                     </>
                 )}

@@ -1,17 +1,24 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ActionButton } from "./ActionButton";
 import { LinkIcon } from "@chakra-ui/icons";
 
 export const CopyToClipboardButton = (props: { data: string; label: string }) => {
     const { data, label } = props;
     const [btnText, setBtnText] = useState(label);
+    useEffect(() => {
+        setBtnText(label);
+    }, [label]);
 
     const copyToClipBoard = (message: string) => {
         if (message) {
             navigator.clipboard.writeText(message);
             setBtnText("copied to clipboard");
+
+            setTimeout(() => {
+                setBtnText(label);
+            }, 2000);
         } else {
-            setBtnText("Copy to clipbopard failed");
+            setBtnText("Copy to clipboard failed");
         }
     };
 

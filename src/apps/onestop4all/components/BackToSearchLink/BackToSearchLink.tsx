@@ -1,42 +1,28 @@
 import { Box, Flex } from "@open-pioneer/chakra-integration";
-import { useIntl } from "open-pioneer:react-hooks";
 import { useNavigate } from "react-router-dom";
-
 import { BackIcon } from "../Icons";
 
-export function BackToSearchLink(props: { visible: boolean }) {
-    const { visible } = props;
+export function BackToSearchLink({ visible }: { visible: boolean }) {
     const navigate = useNavigate();
 
-    function backToSearch() {
-        navigate({ pathname: "/search" });
-    }
-    const intl = useIntl();
-    const backText = "Back";
-    const toResultListText = "to result list";
-
-    return visible ? (
+    return (
         <Flex
             fontSize="14px"
             textTransform="uppercase"
             letterSpacing="0.6px"
-            onClick={backToSearch}
+            alignItems="center"
             gap="12px"
+            onClick={() => navigate({ pathname: "/search" })}
             _hover={{ cursor: "pointer" }}
+            display={visible ? "flex" : "none"}
         >
-            <Box onClick={backToSearch} _hover={{ cursor: "pointer" }}>
-                <BackIcon />
-            </Box>
-            <Box>
-                <Box display="inline" fontWeight="700" color="var(--primary-primary-main)">
-                    {backText}&nbsp;
+            <BackIcon />
+            <Box display="flex" alignItems="center">
+                <Box fontWeight="700" color="var(--primary-primary-main)" marginRight="4px">
+                    Back
                 </Box>
-                <Box whiteSpace="nowrap" display="inline">
-                    {toResultListText}
-                </Box>
+                <Box whiteSpace="nowrap">to result list</Box>
             </Box>
         </Flex>
-    ) : (
-        <></>
     );
 }

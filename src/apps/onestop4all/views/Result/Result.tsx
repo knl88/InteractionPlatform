@@ -1,32 +1,24 @@
-import { Box, Container, Divider, Flex, Skeleton, Stack } from "@open-pioneer/chakra-integration";
+import { Box, Container, Divider, Flex, Skeleton } from "@open-pioneer/chakra-integration";
 import { useService } from "open-pioneer:react-hooks";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 
-import { ResourceTypeHeader } from "../../components/ResourceType/ResourceTypeHeader/ResourceTypeHeader";
 import { ResultsNavigation } from "../../components/ResultsNavigation/ResultsNavigation";
 import { SearchBar } from "../../components/SearchBar";
 import { getResourceType, ResourceType } from "../../services/ResourceTypeUtils";
-import { SolrSearchResultItem, ZenodoResultItem } from "../../services/SearchService";
-import { ArticleMetadataResponse, ArticleView } from "../Article/Article";
+import { SearchService, SolrSearchResultItem } from "../../services/SearchService";
 import { DatasetMetadataResponse, DatasetView } from "../Dataset/Dataset";
-import { SoftwareView } from "../Software/Software";
-import {
-    LearningResourceMetadataResponse,
-    LearningResourceView
-} from "../LearningResource/LearningResource";
-import { OrganisationMetadataResponse, OrganisationView } from "../Organisation/Organisation";
-import { RepositoryMetadataResponse, RepositoryView } from "../Repository/Repository";
 import { useSearchState } from "../Search/SearchState";
-import { StandardMetadataResponse, StandardView } from "../Standard/Standard";
-import { ToolsSoftwareMetadataResponse, ToolsSoftwareView } from "../ToolsSoftware/ToolsSoftware";
 import { BackToSearchLink } from "../../components/BackToSearchLink/BackToSearchLink";
 import { ResourceTypeLabel } from "../../components/ResourceTypeLabel/ResourceTypeLabel";
+import { ZenodoMetadataResponse, ZenodoView } from "../Zenodo/Zenodo";
+import { DkpView } from "../Zenodo/DkpView";
+import { fetchAndStoreDkps, findAssociatedDkp } from "../../services/DkpUtils";
 
 export function Result() {
     const resultId = useParams().id as string;
-    const searchSrvc = useService("onestop4all.SearchService");
-    const [searchResult, setSearchResult] = useState<SolrSearchResultItem | ZenodoResultItem>();
+    const searchSrvc = useService("onestop4all.SearchService") as SearchService; 
+    const [searchResult, setSearchResult] = useState<SolrSearchResultItem | ZenodoMetadataResponse>();
     const [resourceType, setResourceType] = useState<ResourceType>();
     const [loading, setLoading] = useState(true);
 
@@ -34,40 +26,60 @@ export function Result() {
 
     const [result, setResult] = useState<number>();
     const [resultCount, setResultCount] = useState<number>();
-    const [relatedResources, setRelatedResources] = useState<object>([]);
     const searchState = useSearchState();
 
     useEffect(() => {
         if (history.state && history.state.usr && history.state.usr.resultPage) {
-            // console.log(`Current page is ${history.state.usr.resultPage}`);
             setResult(history.state.usr.resultPage);
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [history.state.usr]);
+    
+    useEffect(() => {
+        fetchAndStoreDkps(searchSrvc, searchState);
+    }, [searchSrvc]);
 
     useEffect(() => {
         setLoading(true);
-        searchSrvc.getMetadata(resultId).then((result) => {
-            if (result) {
-                if (result.provider === "zenodo") {
-                    searchSrvc.fetchRoCrateFile("10477880").then((crate: any) => {
-                        //TO DO: implement handling for assets that don't have a ro-crate file.
-                        const roCrateFile = crate["@graph"];
-                        setSearchResult(roCrateFile);
-                        setResourceType(
-                            getResourceType(result.response.metadata.resource_type.type)
-                        );
-                        setLoading(false);
-                    });
-                } else {
+        const [provider, id] = resultId.split(":");
+        if (!provider || !id) {
+            throw new Error("Was not able to find a provider or an ID!");
+        }
+        if (id && provider === "zenodo") {
+            searchSrvc.getZenodoMetadata(provider, id).then((result) => {
+                if (result) {
+                    const associatedDkps = findAssociatedDkp(searchState.dkps ?? [], result.response.doi_url);
+
+                    if (associatedDkps.length > 0) {
+                        result.response.dkps = associatedDkps;
+                    }
+
+                    result.response.provider = provider;
+                    setSearchResult(result.response);
+                    if (result.response.metadata.keywords?.includes("Data-to-Knowledge Package")) {
+                        setResourceType(getResourceType("data-to-knowledge package"));
+                    } else {
+                        setResourceType(getResourceType(result.response.metadata.resource_type.type));
+                    }
+                    setLoading(false);
+                }
+            });
+        }
+        else {
+            searchSrvc.getDdasMetadata(provider, id).then((result) => {
+                if (result) {
+                    const associatedDkps = findAssociatedDkp(searchState.dkps ?? [], result.response.id);
+            
+                    if (associatedDkps.length > 0) {
+                        result.response.dkps = associatedDkps;
+                    }
+            
                     setSearchResult(result.response);
                     setResourceType(getResourceType(result.response.properties.type));
                     setLoading(false);
                 }
-            } else {
-                throw new Error("Unexpected response: " + JSON.stringify(result));
-            }
-        });
+            });
+        }
     }, [resultId, searchSrvc]);
 
     useEffect(() => {
@@ -79,61 +91,41 @@ export function Result() {
 
     function getResourceView(): import("react").ReactNode {
         switch (resourceType) {
-            case ResourceType.Repos: {
-                const item = searchResult as RepositoryMetadataResponse;
-                return <RepositoryView item={item} />;
-            }
-            case ResourceType.Organisations: {
-                const item = searchResult as OrganisationMetadataResponse;
-                return <OrganisationView item={item} />;
-            }
-            case ResourceType.Tools: {
-                const item = searchResult as ToolsSoftwareMetadataResponse;
-                return <ToolsSoftwareView item={item} />;
-            }
-            case ResourceType.Standards: {
-                const item = searchResult as StandardMetadataResponse;
-                return <StandardView item={item} />;
-            }
-            case ResourceType.Learning_Resource: {
-                const item = searchResult as LearningResourceMetadataResponse;
-                return <LearningResourceView item={item} />;
-            }
-            case ResourceType.Articles: {
-                const item = searchResult as ArticleMetadataResponse;
-                return <ArticleView item={item} />;
-            }
             case ResourceType.Dataset: {
-                const item = searchResult as DatasetMetadataResponse;
-                return <DatasetView item={item} />;
+                if (searchResult?.provider === "zenodo") {
+                    const item = searchResult as ZenodoMetadataResponse;
+                    return <ZenodoView item={item} />;
+                } else {
+                    const item = searchResult as DatasetMetadataResponse;
+                    return <DatasetView item={item} />;
+                }
             }
-            case ResourceType.Series: {
-                const item = searchResult as DatasetMetadataResponse;
-                return <DatasetView item={item} />;
-            }
-            case ResourceType.Model: {
-                const item = searchResult as DatasetMetadataResponse;
-                return <DatasetView item={item} />;
-            }
-            case ResourceType.Service: {
-                const item = searchResult as DatasetMetadataResponse;
-                return <DatasetView item={item} />;
-            }
-            case ResourceType.DownloadableData: {
-                const item = searchResult as DatasetMetadataResponse;
-                return <DatasetView item={item} />;
-            }
-            case ResourceType.OfflineData: {
-                const item = searchResult as DatasetMetadataResponse;
-                return <DatasetView item={item} />;
-            }
+            case ResourceType.Series:
+            case ResourceType.Model:
+            case ResourceType.Service:
+            case ResourceType.DownloadableData:
+            case ResourceType.OfflineData:
             case ResourceType.LiveData: {
                 const item = searchResult as DatasetMetadataResponse;
                 return <DatasetView item={item} />;
             }
-            case ResourceType.Software: {
-                const item = searchResult as ZenodoResultItem;
-                return <SoftwareView item={item} />;
+            case ResourceType.Software:
+            case ResourceType.Workflow:
+            case ResourceType.Publication:
+            case ResourceType.Presentation:
+            case ResourceType.Video:
+            case ResourceType.Lesson:
+            case ResourceType.Other:
+            case ResourceType.Image:
+            case ResourceType.Poster:
+            case ResourceType.PhysicalObject:
+            case ResourceType.Event: {
+                const item = searchResult as ZenodoMetadataResponse;
+                return <ZenodoView item={item} />;
+            }
+            case ResourceType.DKP: {
+                const item = searchResult as ZenodoMetadataResponse;
+                return <DkpView item={item} />;
             }
             default:
                 throw new Error(`Unknown resourceType: '${resourceType}'`);
@@ -165,19 +157,14 @@ export function Result() {
     }
 
     function fetchResultId(result: number) {
-        searchSrvc
-            .doSearch({
-                pageSize: 1,
-                pageStart: result - 1,
-                searchTerm: searchState.searchTerm,
-                spatialFilter: searchState.spatialFilter
-            })
-            .then((res: any) => {
-                if (res.results[0]) {
-                    navigate(`/result/${res.results[0].id}`, { state: { resultPage: result } });
-                    setResult(result);
-                }
-            });
+        const resultId =
+            searchState && searchState.searchResults
+                ? searchState.searchResults.results[result - 1]?.id
+                : null;
+        if (resultId) {
+            navigate(`/result/${resultId}`, { state: { resultPage: result } });
+            setResult(result);
+        }
     }
 
     function renderPaging(): import("react").ReactNode {
@@ -211,7 +198,7 @@ export function Result() {
                 marginTop={{ base: "-40px", custombreak: "-50px" }}
             >
                 <Container maxW={{ base: "100%", custombreak: "80%" }}>
-                    <SearchBar></SearchBar>
+                    <SearchBar />
                 </Container>
             </Box>
 

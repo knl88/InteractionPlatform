@@ -1,5 +1,6 @@
+import { ZenodoMetadataResponse } from "../../../views/Zenodo/Zenodo";
 import { mapFromResourceType, ResourceType } from "../../ResourceTypeUtils";
-import { SearchResultItem, SolrSearchResultItem, ZenodoResultItem } from "../../SearchService";
+import { SearchResultItem, SolrSearchResultItem } from "../../SearchService";
 
 export type MinSearchResultItem = {
     title: string;
@@ -11,7 +12,6 @@ export abstract class SearchResultHandler {
     public abstract readonly resourceType: ResourceType;
 
     public canHandle(item: string): boolean {
-        //console.log("hieeeer",item);
         if (item) {
             return item === (mapFromResourceType(this.resourceType) as string);
         }
@@ -19,7 +19,7 @@ export abstract class SearchResultHandler {
     }
 
     protected abstract handleExplicit(
-        item: SolrSearchResultItem | ZenodoResultItem
+        item: SolrSearchResultItem | ZenodoMetadataResponse
     ): Partial<SearchResultItem> & MinSearchResultItem;
 
     public handle(item: SolrSearchResultItem): SearchResultItem {

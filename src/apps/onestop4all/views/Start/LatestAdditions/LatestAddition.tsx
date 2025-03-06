@@ -1,4 +1,4 @@
-import { Box } from "@chakra-ui/react";
+/*import { Box } from "@chakra-ui/react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Authors } from "../../../components/ResourceType/Metadata/Authors";
@@ -59,3 +59,4 @@ export const LatestAddition = (props: { aquaResource: ZenodoResultItem }) => {
         </div>
     );
 };
+*/

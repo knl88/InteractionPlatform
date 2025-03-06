@@ -20,7 +20,7 @@ messages:
       dropdownPlaceholder: "All resources"
   start:
     banner:
-      slogan: "<bold>The central gateway for scientific communities to find, access, and reuse aquatic digital resources.</bold>"
+      slogan: "<bold></bold>"
     mission:
       slogan: "The <bold>AquaINFRA Interaction Platform (AIP)</bold> is a user-friendly access point to resources from the aquatic realm, such as research data, software, and training materials."
       links:

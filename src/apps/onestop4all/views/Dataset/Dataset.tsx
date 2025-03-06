@@ -5,6 +5,7 @@ import { SolrSearchResultItem } from "../../services/SearchService";
 import { Abstract } from "../../components/ResourceType/Abstract/Abstract";
 import { ExternalResources } from "../../components/ResourceType/ExternalResources/ExternalResources";
 import { Map } from "../../components/ResourceType/Map/Map";
+import { DkpResources } from "../../components/ResourceType/ExternalResources/DkpResources";
 
 export interface LinkObject {
     href: string;
@@ -38,6 +39,7 @@ export interface DatasetMetadataResponse extends SolrSearchResultItem {
     time: string;
     type: string;
     links: LinkObject[];
+    dkps?: any[];
 }
 
 export interface DatasetViewProps {
@@ -46,7 +48,7 @@ export interface DatasetViewProps {
 
 export function DatasetView(props: DatasetViewProps) {
     const metadata = props.item;
-
+    
     return (
         <Box>
             {/* Desktop view */}
@@ -70,11 +72,11 @@ export function DatasetView(props: DatasetViewProps) {
                     ) : null}
                 </Box>
                 <Box w="25%">
-                    {/*metadata.properties.created ? (
-                        <Box pt="33">
-                            <LastUpdate date={metadata.properties.created} />
+                    {metadata.dkps ? (
+                        <Box pt="8px">
+                            <DkpResources dkps={metadata.dkps} />
                         </Box>
-                    ) : null*/}
+                    ) : null}
                     {metadata.links ? (
                         <Box pt="8px">
                             <ExternalResources links={metadata.links} />
@@ -105,6 +107,11 @@ export function DatasetView(props: DatasetViewProps) {
                         <Abstract abstractText={metadata.description} />
                     </Box>
                 ) : null}
+                {metadata.dkps ? (
+                    <Box pt="8px">
+                        <DkpResources dkps={metadata.dkps} />
+                    </Box>
+                ) : null}
                 {metadata.links ? (
                     <Box pt="40px">
                         <ExternalResources links={metadata.links} />
@@ -118,6 +125,11 @@ export function DatasetView(props: DatasetViewProps) {
         return (
             <Metadata
                 metadataElements={[
+                    {
+                        element: "provider",
+                        tag: "Provider",
+                        val: metadata.provider
+                    },
                     {
                         element: "keyword",
                         tag: metadata.properties.keywords?.length > 1 ? "Keywords" : "Keyword",

@@ -1,9 +1,8 @@
 ARG VITE_OAPIR_URL="https://vm4072.kaj.pouta.csc.fi/ddas/oapir"
 
 FROM node:20-slim AS base
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-RUN corepack enable
+RUN npm i -g corepack@latest
+RUN corepack enable && corepack use pnpm@9
 COPY . /app
 WORKDIR /app
 RUN pnpm install --frozen-lockfile

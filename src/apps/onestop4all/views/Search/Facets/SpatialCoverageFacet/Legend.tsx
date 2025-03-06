@@ -1,5 +1,4 @@
 import { Box } from "@open-pioneer/chakra-integration";
-import { lineBlue } from "./Styles";
 import { Flex } from "@open-pioneer/chakra-integration";
 
 export function Legend() {

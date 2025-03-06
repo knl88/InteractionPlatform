@@ -3,61 +3,61 @@
 .start-view {
     .header-image {
         width: 100%;
-        height: 9vw;
+        height: 13vw;
         max-height: 500px;
         flex-shrink: 0;
-        background-image: url("/background.png");
+        background-image: url("https://aquainfra.eu/images/footer-water.webp");
         background-position-x: 0;
         background-position-y: center;
         background-size: cover;
-        opacity: 0.5;
+        opacity: 0.4;
 
         @media only screen and (max-width: $customBreakpoint) {
-            height: 100px;
-            background-image: url("/background.png");
-        }
-    }
-
-    .bg-icon {
-        //height: 258px;
-        left: 70%;
-        position: relative;
-        top: 8%;
-        bottom: 0;
-        opacity: 0.6;
-        width: 500px;
-
-        @media only screen and (max-width: $customBreakpoint) {
-            height: 193.5px;
-            right: 30px;
-            top: 0;
-            width: 241.5px;
+            height: 35vw;
+            background-image: url("https://aquainfra.eu/images/footer-water.webp");
         }
     }
 
     .mission {
         position: relative;
-        padding: 40px 0;
-        //margin-top: 10px;
+        padding: 20px 0;
 
         @media only screen and (max-width: $customBreakpoint) {
-            padding: 40px 0;
+            padding: 25px 0;
         }
-    }
 
-    .how-to {
-        //padding: 80px 0;
-
-        .how-to-entries {
-            //padding-top: 32px;
-            //padding-left: 200px;
-            overflow: auto;
+        .bg-icon {
+            height: 258px;
+            right: 100px;
+            position: absolute;
+            top: -60px;
+            width: 322px;
+            margin-top: 1%;
 
             @media only screen and (max-width: $customBreakpoint) {
-                padding-bottom: 4px;
+                height: 193.5px;
+                right: 30px;
+                top: 10px;
+                width: 241.5px;
+                margin-top: 1%;
             }
         }
     }
+
+
+    .how-to {
+        //padding-bottom: 80px;
+        @media only screen and (max-width: $customBreakpoint) {
+            padding: 25px 0;
+        }
+
+        .how-to-entries {
+            padding-top: 32px;
+            //padding-left: 200px;
+            overflow: auto;
+        }
+    }
+
 
     .caseStudies {
         .entries {
@@ -82,15 +82,14 @@
     }
 
     .text-centered-box {
-        padding: 0px 200px;
+        padding: 0px 20px;
 
         @media only screen and (max-width: $customBreakpoint) {
-            padding: 0px 0px;
+            padding: 0px 20px;
         }
 
         .text-centered-box-header {
             color: #000;
-            font-family: Arial, Helvetica, sans-serif;
             font-size: 24px;
             font-style: normal;
             font-weight: 400;
@@ -101,7 +100,6 @@
 
         .text-centered-box-text {
             color: #000;
-            font-family: Arial, Helvetica, sans-serif;
             font-size: 16px;
             font-style: normal;
             font-weight: 400;
@@ -117,6 +115,7 @@
             }
         }
     }
+
 
     @media only screen and (max-width: $customBreakpoint) {
         $scrollbar-height: 5px;

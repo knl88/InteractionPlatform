@@ -44,7 +44,10 @@ export const Metadata = (props: {
                     </AccordionPanel>
                     {visibleElements < metadataElements.length ? (
                         <div>
-                            <AccordionButton onClick={() => setExpanded(!expanded)}>
+                            <AccordionButton
+                                justifyContent="center"
+                                onClick={() => setExpanded(!expanded)}
+                            >
                                 <Flex
                                     alignItems="center"
                                     direction="column"

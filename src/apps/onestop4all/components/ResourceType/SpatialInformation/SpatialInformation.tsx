@@ -3,7 +3,7 @@ import { Misc } from "../Metadata/Misc";
 
 export const SpatialInformation = (props: { metadataElements: object; bbox: string }) => {
     const metadataElements = Object.values(props.metadataElements);
-    const bbox = props.bbox;
+
     return (
         <Box>
             <div className="metadataSectionHeader">Spatial Extent</div>

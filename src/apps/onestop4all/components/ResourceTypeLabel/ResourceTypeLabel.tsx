@@ -1,19 +1,19 @@
 import { Box, Flex, Skeleton } from "@open-pioneer/chakra-integration";
-import { useIntl } from "open-pioneer:react-hooks";
 
 import { ResourceType } from "../../services/ResourceTypeUtils";
 import {
     DatasetIcon,
     DocumentsIcon,
+    EventIcon,
+    ImageIcon,
     LearningResourceIcon,
-    OrganisationsIcon,
-    RepositoriesIcon,
+    OtherIcon,
     SeriesIcon,
-    ServicesIcon,
-    StandardIcon,
-    ToolSoftwareIcon
+    ToolSoftwareIcon,
+    VideoIcon,
+    WorkflowIcon,
+    DkpIcon
 } from "../Icons";
-import { ResourceIcon } from "../../views/Start/ResourceEntry/ResourceIcons";
 
 export function ResourceTypeLabel(props: {
     resType: ResourceType | undefined;
@@ -21,8 +21,6 @@ export function ResourceTypeLabel(props: {
     iconAlign: "left" | "right";
 }) {
     const { resType, loading = false, iconAlign } = props;
-    const intl = useIntl();
-    const loadingText = intl.formatMessage({ id: "resource-type-header.loading" });
 
     return (
         <Flex
@@ -35,7 +33,7 @@ export function ResourceTypeLabel(props: {
             gap="12px"
         >
             {loading ? (
-                <Skeleton>{loadingText}</Skeleton>
+                <Skeleton>Loading...</Skeleton>
             ) : (
                 <>
                     {iconAlign === "left" && <Box>{getIcon()}</Box>}
@@ -48,27 +46,30 @@ export function ResourceTypeLabel(props: {
 
     function getIcon() {
         switch (resType) {
-            case ResourceType.Repos:
-                return <RepositoriesIcon />;
-            case ResourceType.Tools:
-                return <ToolSoftwareIcon />;
-            case ResourceType.Standards:
-                return <StandardIcon />;
-            case ResourceType.Learning_Resource:
-                return <LearningResourceIcon />;
-            case ResourceType.LHB_Articles:
-            case ResourceType.Articles:
-                return <DocumentsIcon />;
-            case ResourceType.Organisations:
-                return <OrganisationsIcon />;
-            // case ResourceType.Services:
-            //     return <ServicesIcon />;
             case ResourceType.Dataset:
                 return <DatasetIcon />;
-            case ResourceType.Service:
-                return <ServicesIcon />;
             case ResourceType.Series:
                 return <SeriesIcon />;
+            case ResourceType.Software:
+                return <ToolSoftwareIcon />;
+            case ResourceType.DKP:
+                return <DkpIcon />;
+            case ResourceType.Workflow:
+                return <WorkflowIcon />;
+            case ResourceType.Publication:
+            case ResourceType.Poster:
+            case ResourceType.Presentation:
+                return <DocumentsIcon />;
+            case ResourceType.Image:
+                return <ImageIcon />;
+            case ResourceType.Event:
+                return <EventIcon />;
+            case ResourceType.Other:
+                return <OtherIcon />;
+            case ResourceType.Video:
+                return <VideoIcon />;
+            case ResourceType.Lesson:
+                return <LearningResourceIcon />;
             default:
                 return <></>;
         }

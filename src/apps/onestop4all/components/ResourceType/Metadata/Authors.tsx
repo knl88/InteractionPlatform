@@ -4,7 +4,7 @@ import { PersonalInfo } from "./PersonalInfo";
 export interface Author {
     name: string;
     orcid?: string;
-    affiliation: string;
+    affiliation?: string;
 }
 
 const AuthorEntry = (props: Author) => {
@@ -29,7 +29,7 @@ export const Authors = (props: { authors: Author[]; tag?: string }) => {
                     <AuthorEntry
                         key={j}
                         name={elem.name}
-                        //orcid={elem.orcid}
+                        orcid={elem.orcid}
                         affiliation={elem.affiliation}
                     />
                 </div>

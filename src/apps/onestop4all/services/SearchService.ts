@@ -1,23 +1,22 @@
 import "@open-pioneer/runtime";
 
-import { ServiceOptions } from "@open-pioneer/runtime";
 import { ResourceType } from "./ResourceTypeUtils";
 import { DataProvider } from "../views/Search/Facets/DataProviderFacet/DataProviderFacet";
 
 export interface SearchResultItem {
     id: string;
-    title: string;
-    resourceType: ResourceType;
+    title?: string;
+    resourceType?: ResourceType;
     publishDate?: Date;
     updateDate?: Date;
     locality?: string;
-    abstract: string;
-    url: string;
+    abstract?: string;
+    url?: string;
     properties: {
         title: string;
         type: string;
         aicollection: string;
-        description: string;
+        description?: string;
     };
 }
 
@@ -26,8 +25,9 @@ export interface SearchRequestParams {
     resourceTypes?: string[];
     subjects?: string[];
     dataProvider?: string[];
-    pageSize?: number;
-    pageStart?: number;
+    downloadOption: boolean;
+    //pageSize?: number;
+    //pageStart?: number;
     spatialFilter?: number[];
     temporalFilter?: TemporalFilter;
     temporalConfig?: TemporalConfig;
@@ -56,39 +56,12 @@ export interface SolrSearchResultItem {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     [key: string]: any;
     time: string;
+    provider: string;
     properties: {
         title: string;
         type: string;
         aicollection: string;
         description: string;
-    };
-}
-
-export interface ZenodoResultItem {
-    title: string;
-    recid: string;
-    doi_url: string;
-    identifier: string;
-    codeRepository: string;
-    metadata: {
-        resource_type: {
-            title: string;
-            type: ResourceType;
-        };
-        description: string;
-        language: string;
-        publication_date: string;
-        license: {
-            id: string;
-        };
-        version: string;
-        creators: [
-            {
-                affiliation: string;
-                name: string;
-                orcid: string;
-            }
-        ];
     };
 }
 
@@ -102,44 +75,39 @@ export interface SearchResult {
     facets: Facets;
 }
 
-export interface SolrConfig {
-    url: string;
-    coreSelector: string;
+export interface TextFileResponse {
+    jobID: string,
+    textfile: {
+        href: string;
+    };
 }
 
 const oapirUrl = import.meta.env.VITE_OAPIR_URL;
-export const supportForm = "http://localhost/html/nfdi/";
+const zenodoUrl = "https://zenodo.org/api/records";
 
 export class SearchService {
-    private config: SolrConfig;
-
-    constructor(opts: ServiceOptions) {
-        if (opts.properties.solr) {
-            this.config = opts.properties.solr as SolrConfig;
-        } else {
-            throw new Error("Configuration for solr is missing.");
-        }
-    }
-
     doSearch(searchParams: SearchRequestParams): Promise<SearchResult> {
         const queryParams = this.createQueryParams();
 
         this.addSearchterm(searchParams.searchTerm, queryParams);
 
-        this.addPaging(searchParams.pageSize, searchParams.pageStart, queryParams);
+        this.addSearchResultsLimit(queryParams);
 
         this.addSpatialFilter(searchParams.spatialFilter, queryParams);
 
         this.addDataProvider(searchParams.dataProvider, queryParams);
+
+        this.addDownloadOption(searchParams.downloadOption, queryParams);
 
         const url = `${oapirUrl}/search?${queryParams.toString()}`;
 
         return fetch(url).then((response) =>
             response.json().then((responseData) => {
                 const response = responseData;
+
                 if (response.numberMatched !== undefined && response.features !== undefined) {
                     return {
-                        count: response.numberMatched,
+                        count: response.features.length,
                         results: response.features,
                         facets: {
                             provider: searchParams.dataProvider?.map((dp) => {
@@ -154,22 +122,11 @@ export class SearchService {
         );
     }
 
-    getMetadata(resourceId: string) {
-        const provider = resourceId.split(":")[0];
-        const id = resourceId.substring(resourceId.indexOf(":") + 1);
-        const queryParams = this.createQueryParams();
-        let url = "";
-        if (resourceId) {
-            queryParams.set("ids", resourceId);
-            this.addChildQueryParams(queryParams);
+    getZenodoMetadata(provider: string, id: string) {
+        if (!provider || !id) {
+            return Promise.reject(new Error("Invalid resourceId"));
         }
-        if (provider === "zenodo") {
-            const baseUrl = "https://zenodo.org/api/records";
-            url = `${baseUrl}/${id}`;
-        } else {
-            const baseUrl = oapirUrl + "/collections";
-            url = `${baseUrl}/${provider}/items/${id}`;
-        }
+        const url = `${zenodoUrl}/${id}`;
         return fetch(url).then((response) =>
             response.json().then((responseData) => {
                 if (responseData) {
@@ -181,12 +138,15 @@ export class SearchService {
         );
     }
 
-    getLatestAdditionsFromZenodo() {
-        const url = `https://zenodo.org/api/records?communities=aquainfra`;
+    getDdasMetadata(provider: string, id: string) {
+        if (!provider || !id) {
+            return Promise.reject(new Error("Invalid resourceId"));
+        }
+        const url = `${oapirUrl}/collections/${provider}/items/${id}`;
         return fetch(url).then((response) =>
-            response.json().then((responseData: object) => {
+            response.json().then((responseData) => {
                 if (responseData) {
-                    return responseData;
+                    return { response: responseData, provider: provider };
                 } else {
                     throw new Error("Unexpected response: " + JSON.stringify(responseData));
                 }
@@ -194,11 +154,10 @@ export class SearchService {
         );
     }
 
-    fetchRoCrateFile(id: string) {
-        const url =
-            "https://zenodo.org/api/records/" + id + "/files/ro-crate-metadata.json/content";
+    getDataToKnowledgePackages() {
+        const url = `${zenodoUrl}/?communities=aquainfra&q=keywords:%22Data-To-Knowledge%20Package%22`;
         return fetch(url).then((response) =>
-            response.json().then((responseData: object) => {
+            response.json().then((responseData) => {
                 if (responseData) {
                     return responseData;
                 } else {
@@ -221,6 +180,82 @@ export class SearchService {
         );
     }
 
+    getRelatedSearchterms(keyword: string) {
+        const baseUrl = "https://vm2558.kaj.pouta.csc.fi/rcsearch?keyword=";
+        const url = baseUrl + keyword + "&broader=true&narrower=true&related=true";
+        return fetch(url).then((response) =>
+            response.text().then((responseData: string) => {
+                if (responseData) {
+                    return responseData;
+                } else {
+                    throw new Error("Unexpected response: " + JSON.stringify(responseData));
+                }
+            })
+        );
+    }
+
+    createTxtFile(url: string) {
+        const data = {
+            inputs: {
+                link_from_ddas: url
+            }
+        };
+
+        return fetch("https://aqua.igb-berlin.de/pygeoapi-dev/processes/get-ddas-galaxy-link-textfile/execution", {
+            method: "POST",
+            mode: "cors",
+            body: JSON.stringify(data)
+        })
+            .then((response) => response.json().then((responseData: TextFileResponse) => {
+                if (responseData) {
+                    return responseData;
+                } else {
+                    throw new Error("Unexpected response: " + JSON.stringify(responseData));
+                }
+            }))
+            .catch((error) => console.error(error));
+    }
+
+    getKnowledgePackages() {
+        const url = "https://sandbox.zenodo.org/api/records?communities=aquainfra&q=keywords:%22Data-To-Knowledge%20Package%22";
+
+        return fetch(url).then((response) =>
+            response.json().then((responseData: object) => {
+                if (responseData) {
+                    return responseData;
+                } else {
+                    throw new Error("Unexpected response: " + JSON.stringify(responseData));
+                }
+            })
+        );
+    }
+
+    processCatchment(lon:number, lat: number) {
+        const url = "https://aqua.igb-berlin.de/pygeoapi-dev/processes/get-upstream-dissolved/execution";
+        
+        const data = {
+            inputs: {
+                lon: lon,
+                lat: lat,
+                comment: "..."
+            }
+        };
+
+        return fetch(url, {
+            method: "POST",
+            mode: "cors",
+            body: JSON.stringify(data)
+        })
+            .then((response) => response.json().then((result) => {
+                if (result) {
+                    return result;
+                } else {
+                    throw new Error("Unexpected response: " + JSON.stringify(result));
+                }
+            }))
+            .catch((error) => console.error(error));
+    }
+
     private addSpatialFilter(spatialFilter: number[] | undefined, queryParams: URLSearchParams) {
         if (spatialFilter && spatialFilter.length > 0) {
             if (spatialFilter.length === 4) {
@@ -236,28 +271,24 @@ export class SearchService {
         }
     }
 
-    private addPaging(
-        pageSize: number | undefined,
-        pageStart: number | undefined,
+    private addDownloadOption(downloadOption: boolean, queryParams: URLSearchParams) {
+        if (downloadOption) {
+            queryParams.set("rdl", `${downloadOption}`);
+        }
+    }
+
+    private addSearchResultsLimit(
+        /*pageSize: number | undefined,
+        pageStart: number | undefined,*/
         queryParams: URLSearchParams
     ) {
-        if (pageSize !== undefined) {
-            queryParams.set("limit", pageSize.toString());
-            if (pageStart !== undefined) {
-                queryParams.set("offset", (pageStart * pageSize).toString());
-            }
-        }
+        queryParams.set("limit", "100");
     }
 
     private addSearchterm(searchTerm: string | undefined, queryParams: URLSearchParams) {
         if (searchTerm) {
             queryParams.set("q", searchTerm);
         }
-    }
-
-    private addChildQueryParams(queryParams: URLSearchParams) {
-        queryParams.set("fl", "*, [child author]");
-        queryParams.set("fq", '-type:"person_nested"');
     }
 
     private createQueryParams(): URLSearchParams {

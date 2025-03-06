@@ -3,7 +3,7 @@ import { createContext, PropsWithChildren, useContext, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { ResourceType } from "../../services/ResourceTypeUtils";
-import { SearchResult } from "../../services/SearchService";
+import { SearchResult, SearchService } from "../../services/SearchService";
 
 export enum UrlSearchParameterType {
     Searchterm = "searchterm",
@@ -25,8 +25,6 @@ export interface UrlSearchParams {
     [UrlSearchParameterType.DownloadOption]?: string;
 }
 
-export const SpatialFilterEnableForResourceTypes = [ResourceType.Organisations];
-
 export const SortOptions: SortOption[] = [
     { label: "Relevanz", term: "" },
     { label: "Title (A-Z)", term: "mainTitle asc" },
@@ -47,10 +45,20 @@ export interface SortOption {
 export interface ISearchState {
     searchTerm: string;
     setSearchTerm(searchTerm: string): void;
-    downloadOption: string;
-    setDownloadOption(downloadOption: string): void;
+    downloadOption: boolean;
+    setDownloadOption(downloadOption: boolean): void;
     selectedDataProvider: string[];
     setSelectedDataProvider(dataProvider: string[]): void;
+    selectedDataProviderTmp: string[];
+    setSelectedDataProviderTmp(dataProvider: string[]): void;
+    dkps: any[] | undefined;
+    setDkps(dkps: any[]): void;
+    dataProviderTriggered: boolean;
+    setDataProviderTriggered(dataProviderTriggered: boolean): void;
+    relatedTerms: any;
+    setRelatedTerms(obj: any): void;
+    relatedTermsKeyword: string | undefined;
+    setRelatedTermsKeyword(rtkw: string): void;
     dataProviderTitles: string[];
     setDataProviderTitles(dataProviderTitles: string[]): void;
     selectableDataProvider: SelectableDataProvider[];
@@ -84,12 +92,12 @@ export const useSearchState = () => {
 };
 
 export const SearchState = (props: PropsWithChildren) => {
-    const searchSrvc = useService("onestop4all.SearchService");
+    const searchSrvc = useService("onestop4all.SearchService") as SearchService;
     const [searchParams] = useSearchParams();
 
     // init search results and loading state
     const [searchResults, setSearchResults] = useState<SearchResult>();
-    const [isLoaded, setIsLoaded] = useState(false);
+    const [isLoaded, setIsLoaded] = useState(true);
 
     // init search term
     const [searchTerm, setSearchTerm] = useState<string>(
@@ -116,9 +124,16 @@ export const SearchState = (props: PropsWithChildren) => {
         urlDp.forEach((e) => e && dPr.push(e));
     }
     const [selectedDataProvider, setSelectedDataProvider] = useState<string[]>(dPr);
+    const [selectedDataProviderTmp, setSelectedDataProviderTmp] = useState<string[]>(dPr);
+
+    const [relatedTerms, setRelatedTerms] = useState<any>();
+    const [relatedTermsKeyword, setRelatedTermsKeyword] = useState<string>();
+
+    const [dkps, setDkps] = useState<any[]>();
+    const [dataProviderTriggered, setDataProviderTriggered] = useState<boolean>(true);
 
     //init download option
-    const [downloadOption, setDownloadOption] = useState<string>("");
+    const [downloadOption, setDownloadOption] = useState<boolean>(false);
 
     // init spatial filter
     let sp: number[] = [];
@@ -140,14 +155,14 @@ export const SearchState = (props: PropsWithChildren) => {
 
     function search() {
         setIsLoaded(false);
-        selectedDataProvider.length > 0
+        setDataProviderTriggered(true);
+        selectedDataProvider.length > 0 && searchTerm.trim() !== ""
             ? searchSrvc
                 .doSearch({
                     searchTerm,
                     dataProvider: selectedDataProvider.map((e:any) => e.id ? e.id : e),
+                    downloadOption,
                     spatialFilter,
-                    pageSize,
-                    pageStart,
                     sorting: sorting?.term
                 })
                 .then((result) => {
@@ -202,6 +217,16 @@ export const SearchState = (props: PropsWithChildren) => {
         search,
         setSelectedDataProvider,
         selectedDataProvider,
+        selectedDataProviderTmp,
+        setSelectedDataProviderTmp,
+        relatedTerms,
+        setRelatedTerms,
+        dkps,
+        setDkps,
+        dataProviderTriggered,
+        setDataProviderTriggered,
+        relatedTermsKeyword,
+        setRelatedTermsKeyword,
         selectableDataProvider,
         setDataProviderTitles,
         dataProviderTitles,

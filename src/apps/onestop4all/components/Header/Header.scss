@@ -23,8 +23,24 @@
     display: none;
 }
 
+#logoBig {
+    display: block;
+}
+
+#logoSmall {
+    display: none;
+}
+
 /* Adjust for small screens */
 @media only screen and (max-width: $customBreakpoint) {
+    #logoBig {
+        display: none;
+    }
+
+    #logoSmall {
+        display: block;
+    }
+    
     #svg1 {
         display: none;
     }

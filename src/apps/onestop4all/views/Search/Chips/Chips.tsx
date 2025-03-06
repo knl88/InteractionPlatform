@@ -1,7 +1,7 @@
 import { Box, Flex } from "@chakra-ui/react";
 import { SystemStyleObject } from "@open-pioneer/chakra-integration";
 
-import { PrimaryColor, PrimaryColor40 } from "../../../Theme";
+import { PrimaryColor, PrimaryColor40, PrimaryFont } from "../../../Theme";
 import { useSearchState } from "../SearchState";
 
 interface ChipsEntry {
@@ -14,7 +14,6 @@ export function Chips() {
     const searchState = useSearchState();
     const chips: ChipsEntry[] = [];
 
-    // TODO: remove later searchterm
     const st = searchState.searchTerm;
     if (st) {
         chips.push({
@@ -24,7 +23,6 @@ export function Chips() {
         });
     }
 
-    // data provider
     const dataProvider = searchState.selectedDataProvider;
     if (dataProvider.length) {
         const titles = [] as string[];
@@ -43,7 +41,6 @@ export function Chips() {
         });
     }
 
-    // spatial coverage
     const spatialFilter = searchState.spatialFilter;
     if (spatialFilter.length) {
         chips.push({
@@ -55,7 +52,7 @@ export function Chips() {
 
     const titleStyles = {
         color: PrimaryColor,
-        fontFamily: "Open Sans",
+        fontFamily: PrimaryFont,
         fontSize: "14px",
         fontWeight: 700,
         lineHeight: "24px"
